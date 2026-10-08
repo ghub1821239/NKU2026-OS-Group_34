@@ -12,7 +12,8 @@ SECTIONS
     . = BASE_ADDRESS;
 
     .text : {
-        *(.text.kern_entry .text .stub .text.* .gnu.linkonce.t.*)
+        *(.text.kern_entry) /*把输入中kern_entry这一段放到输出中text的开头*/
+        *(.text .stub .text.* .gnu.linkonce.t.*)
     }
 
     PROVIDE(etext = .); /* Define the 'etext' symbol to this value */
