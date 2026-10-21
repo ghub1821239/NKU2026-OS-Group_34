@@ -28,7 +28,12 @@ void print_kerninfo(void) {
 int kern_init(void) {
     extern char edata[], end[];
     memset(edata, 0, end - edata);
+    // 检查 boot_dtb 是否非空且正确
+    // 把物理内存的起点和大小取出来，存进全局变量 memory_base 和 memory_size 里
+    // 方便通过 get_memory_base & get_memory_size 访问
     dtb_init();
+    // OpenSBI 在跳转到我们的 entry.S 之前，早就把串口控制台（Console / UART）的硬件初始化好了。
+    // 原因是因为在 x86 中没有 openSBI 这种固件，就需要自己在 cons_init() 里写一堆初始化显卡和串口的代码。
     cons_init();  // init the console
     const char *message = "(THU.CST) os is loading ...\0";
     //cprintf("%s\n\n", message);

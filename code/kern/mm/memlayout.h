@@ -39,8 +39,19 @@ struct Page {
 };
 
 /* Flags describing the status of a page frame */
+/*
+page->flags (64位整数):
+  63 ... 2    1             0
+┌──────────┬─────────────┬─────────────┐
+│   不用   │ PG_property │ PG_reserved │
+└──────────┴─────────────┴─────────────┘
+              (第1位)        (第0位)
+PG_reserved：是否被内核永久征用（1） / 保留可分配（0）
+PG_property：是不是一片连续空闲块的首页 是（1） / 否（0）
+page->property在是首页的时候表示这一个空闲块拥有的空白页数量
+*/
 #define PG_reserved                 0       // if this bit=1: the Page is reserved for kernel, cannot be used in alloc/free_pages; otherwise, this bit=0 
-#define PG_property                 1       // if this bit=1: the Page is the head page of a free memory block(contains some continuous_addrress pages), and can be used in alloc_pages; if this bit=0: if the Page is the the head page of a free memory block, then this Page and the memory block is alloced. Or this Page isn't the head page.
+#define PG_property                 1       // if this bit=1: the Page is the head page of a free memory block(contains some continuous_address pages), and can be used in alloc_pages; if this bit=0: if the Page is the the head page of a free memory block, then this Page and the memory block is alloced. Or this Page isn't the head page.
 
 #define SetPageReserved(page)       ((page)->flags |= (1UL << PG_reserved))
 #define ClearPageReserved(page)     ((page)->flags &= ~(1UL << PG_reserved))

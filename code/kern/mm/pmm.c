@@ -34,7 +34,7 @@ static void check_alloc_page(void);
 
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
-    pmm_manager = &default_pmm_manager;
+    pmm_manager = &best_fit_pmm_manager;
     cprintf("memory management: %s\n", pmm_manager->name);
     pmm_manager->init();
 }
@@ -62,6 +62,65 @@ size_t nr_free_pages(void) {
 }
 
 //lab2 function1 YOUR CODE
+
+/* page_init - detect physical memory and build the page descriptor array */
+static void page_init(void) {
+    // 设备树探测到的物理内存范围
+    uint64_t mem_base = get_memory_base();
+    uint64_t mem_size = get_memory_size();
+
+    // 设备树信息无效：报错并终止初始化，不再继续建立空闲页
+    if (mem_base == 0 || mem_size == 0) {
+        panic("page_init: invalid memory info from DTB (base=0x%lx, size=0x%lx)",
+              mem_base, mem_size);
+    }
+
+    // 虚地址到物理地址的偏移量：vaddr = paddr + va_pa_offset
+    va_pa_offset = PHYSICAL_MEMORY_OFFSET;
+
+    // 可管理的物理内存上界取设备树结果与框架上界的较小值
+    uint64_t mem_end = mem_base + mem_size;
+    if (mem_end > PHYSICAL_MEMORY_END) {
+        mem_end = PHYSICAL_MEMORY_END;
+    }
+    if (PPN(mem_end) <= nbase) {
+        panic("page_init: invalid memory end 0x%lx", mem_end);
+    }
+
+    // npage 是物理页号的上界，描述符数组需要覆盖 [nbase, npage)
+    npage = PPN(mem_end);
+
+    // Page 描述符数组紧接在内核镜像之后，并按页对齐
+    extern char end[];
+    pages = (struct Page *)ROUNDUP((uintptr_t)end, PGSIZE);
+
+    // 先全部置为 reserved，防止尚未完成布局的页被分配
+    size_t nr_pages = npage - nbase;
+    for (size_t i = 0; i < nr_pages; i++) {
+        pages[i].ref = 0;
+        pages[i].flags = 0;
+        pages[i].property = 0;
+        SetPageReserved(&pages[i]);
+    }
+
+    cprintf("Physical memory: [0x%016lx, 0x%016lx), npage = 0x%lx\n",
+            mem_base, mem_end, npage);
+
+    // 描述符数组之后的第一个完整页作为空闲区起点
+    uintptr_t free_start_pa =
+        PADDR(ROUNDUP((uintptr_t)(pages + nr_pages), PGSIZE));
+    // 内存末端向下按页对齐，末尾不足一页的部分不交给分配器
+    uintptr_t free_end_pa = ROUNDDOWN(mem_end, PGSIZE);
+
+    // 剩余部分无法构成完整页时，不调用 init_memmap
+    if (free_start_pa >= free_end_pa) {
+        cprintf("page_init: no complete free page available\n");
+        return;
+    }
+
+    // 把完整空闲页交给当前物理内存管理器
+    init_memmap(pa2page(free_start_pa), (free_end_pa - free_start_pa) / PGSIZE);
+}
 
 /* pmm_init - initialize the physical memory management */
 void pmm_init(void) {

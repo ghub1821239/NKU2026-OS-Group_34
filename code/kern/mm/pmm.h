@@ -27,6 +27,7 @@ struct pmm_manager {
                                                       // "base" addr of Page
                                                       // descriptor
                                                       // structures(memlayout.h)
+    // 返回目前有的空闲页数量
     size_t (*nr_free_pages)(void);  // return the number of free pages
     void (*check)(void);            // check the correctness of XXX_pmm_manager
 };
@@ -101,6 +102,7 @@ static inline int page_ref_dec(struct Page *page) {
     page->ref -= 1;
     return page->ref;
 }
+// 物理地址->page
 static inline struct Page *pa2page(uintptr_t pa) {
     if (PPN(pa) >= npage) {
         panic("pa2page called with invalid pa");

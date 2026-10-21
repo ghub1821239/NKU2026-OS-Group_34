@@ -107,7 +107,7 @@ static uint64_t memory_size = 0;
 void dtb_init(void) {
     cprintf("DTB Init\n");
     cprintf("HartID: %ld\n", boot_hartid);
-    cprintf("DTB Address: 0x%lx\n", boot_dtb);
+    cprintf("DTB Address: 0x%lx\n",  );
     
     if (boot_dtb == 0) {
         cprintf("Error: DTB address is null\n");
@@ -115,10 +115,17 @@ void dtb_init(void) {
     }
     
     // 转换为虚拟地址
+    // 变成虚地址，因为已经开了分页了
     uintptr_t dtb_vaddr = boot_dtb + PHYSICAL_MEMORY_OFFSET;
     const struct fdt_header *header = (const struct fdt_header *)dtb_vaddr;
     
     // 验证DTB
+    /*
+     * 固定防伪暗号：设备树（DTB）标准死规定——任何合法的 DTB 数据，
+     *     最开头的第 1 个 32 位整数（header->magic），必须固定写入 0xd00dfeed 这串数字（就像人民币上的防伪水印）。
+     * 字节序转换（fdt32_to_cpu）：因为 DTB 标准规定数据按“大端序（高字节在前）”存放，而 RISC-V CPU 是“小端序（低字节在前）”，
+     *     所以先调 fdt32_to_cpu() 把这 4 个字节翻转成 CPU 能正常比较的顺序。
+    */
     uint32_t magic = fdt32_to_cpu(header->magic);
     if (magic != 0xd00dfeed) {
         cprintf("Error: Invalid DTB magic number: 0x%x\n", magic);
@@ -133,8 +140,8 @@ void dtb_init(void) {
         cprintf("  Size: 0x%016lx (%ld MB)\n", mem_size, mem_size / (1024 * 1024));
         cprintf("  End:  0x%016lx\n", mem_base + mem_size - 1);
         // 保存到全局变量，供 PMM 查询
-        memory_base = mem_base;
-        memory_size = mem_size;
+        memory_base = mem_base;// DRAM 起点
+        memory_size = mem_size;// DRAM 大小
     } else {
         cprintf("Warning: Could not extract memory info from DTB\n");
     }

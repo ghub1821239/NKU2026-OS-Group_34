@@ -18,25 +18,39 @@ static void
 default_init_memmap(struct Page *base, size_t n) {
     assert(n > 0);
     struct Page *p = base;
+    // 【初始化】
     for (; p != base + n; p ++) {
         assert(PageReserved(p));
         p->flags = p->property = 0;
         set_page_ref(p, 0);
     }
+    // 首页 对应这一块的空白页数量为 n
     base->property = n;
     SetPageProperty(base);
+    // 【维护空白页数量】
     nr_free += n;
+
+    //【插入链表】
+    // 如果为空直接加
     if (list_empty(&free_list)) {
         list_add(&free_list, &(base->page_link));
-    } else {
+    }
+    // 遍历找到一个位置放置
+    else {
         list_entry_t* le = &free_list;
         while ((le = list_next(le)) != &free_list) {
+            // 用 le2page 反推 struct 的地址
             struct Page* page = le2page(le, page_link);
+            // 找到了第一个比 base 大的，就放在前面
             if (base < page) {
                 list_add_before(le, &(base->page_link));
                 break;
-            } else if (list_next(le) == &free_list) {
+            }
+            // 一直没找到就尾插 
+            else if (list_next(le) == &free_list) {
                 list_add(le, &(base->page_link));
+                //!? 源码忘记写了？
+                break;
             }
         }
     }
