@@ -60,6 +60,7 @@ ALLOBJS	:=
 ALLDEPS	:=
 TARGETS	:=
 
+# 这个 makefile 包含了 {pwd}/tools/function.mk 
 include tools/function.mk
 
 listf_cc = $(call listf,$(1),$(CTYPE))
@@ -158,6 +159,38 @@ endif
 
 TARGETS: $(TARGETS)
 
+# /*default 编译的 target 是 TARGETS（也就是不指定的时候等价于执行 make TARGETS*/
+# 
+# /*
+# $(...) 表示让 make 展开里面的内容，得到结果
+# 在$(call create_target,kernel)会使用内置函数call 展开，call->(要展开的变量名,参数 1，参数 2，…)
+# create_target 就得看包含的 function.mk 然后展开发现调用的是do_create_target
+# 
+# define do_create_target
+# __temp_target__ = $(call totarget,$(1))
+# __temp_objs__ = $$(foreach p,$(call packetname,$(2)),$$($$(p))) $(3)
+# TARGETS += $$(__temp_target__)
+# ifneq ($(4),)
+# $$(__temp_target__): $$(__temp_objs__) | $$$$(dir $$$$@)
+# 	$(V)$(4) $(5) $$^ -o $$@
+# else
+# $$(__temp_target__): $$(__temp_objs__) | $$$$(dir $$$$@)
+# endif
+# endef
+# 
+# 表示do_create_target这个大块为：
+# 定义：
+# 	__temp_target__ = $(call totarget,$(1))
+# 	__temp_objs__ = $$(foreach p,$(call packetname,$(2)),$$($$(p))) $(3)
+# 	TARGETS += $$(__temp_target__)
+# 调用
+# 	ifneq ($(4),)
+# 	$$(__temp_target__): $$(__temp_objs__) | $$$$(dir $$$$@)   【command + rely】
+# 		$(V)$(4) $(5) $$^ -o $$@
+# 	else
+# 	$$(__temp_target__): $$(__temp_objs__) | $$$$(dir $$$$@)   【只有 rely】
+# 	endif
+# */
 .DEFAULT_GOAL := TARGETS
 .PHONY: qemu spike test
 qemu: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
