@@ -63,6 +63,7 @@ typedef size_t ppn_t;
         })
 
 /* Return the offset of 'member' relative to the beginning of a struct type */
+/* (type *)0 相当于强制在 0 这个地址创建一个 type 变量，然后访问他的 member 这样&取址之后得到的就是 offset*/
 #define offsetof(type, member)                                      \
     ((size_t)(&((type *)0)->member))
 
@@ -72,6 +73,11 @@ typedef size_t ppn_t;
  * @type:   the type of the struct this is embedded in
  * @member: the name of the member within the struct
  * */
+ /* 
+  * 强转为 char* 是因为 C 中 指针 - N，实际减掉的字节数是 N × 该指针指向类型的大小
+  * 而 char 刚好占 1 字节
+  * 最后算出来的地址指针再强转为原 type 即可
+ */
 #define to_struct(ptr, type, member)                               \
     ((type *)((char *)(ptr) - offsetof(type, member)))
 

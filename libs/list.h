@@ -18,9 +18,12 @@ struct list_entry {
     struct list_entry *prev, *next;
 };
 
+// 起个别名省得每次还得 struct list_entry 使用
 typedef struct list_entry list_entry_t;
 
+// 强制开启 inline ——__attribute__((always_inline))
 static inline void list_init(list_entry_t *elm) __attribute__((always_inline));
+// 单纯是为了少些几个_after 字母，默认头插了
 static inline void list_add(list_entry_t *listelm, list_entry_t *elm) __attribute__((always_inline));
 static inline void list_add_before(list_entry_t *listelm, list_entry_t *elm) __attribute__((always_inline));
 static inline void list_add_after(list_entry_t *listelm, list_entry_t *elm) __attribute__((always_inline));
@@ -39,6 +42,7 @@ static inline void __list_del(list_entry_t *prev, list_entry_t *next) __attribut
  * */
 static inline void
 list_init(list_entry_t *elm) {
+    // 省的考虑 NULL 的事情
     elm->prev = elm->next = elm;
 }
 
