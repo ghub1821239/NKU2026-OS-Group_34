@@ -1,4 +1,5 @@
 #include <default_pmm.h>
+#include <best_fit_pmm.h>
 #include <bs_pmm.h>
 #include <slub.h>
 #include <defs.h>
@@ -35,7 +36,11 @@ static void check_alloc_page(void);
 
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
+#ifdef LAB2_GRADE
+    pmm_manager = &best_fit_pmm_manager;
+#else
     pmm_manager = &bs_pmm_manager;
+#endif
     cprintf("memory management: %s\n", pmm_manager->name);
     pmm_manager->init();
 }

@@ -5,6 +5,11 @@
 #include <string.h>
 #include <dtb.h>
 
+#ifdef ucore_test
+#include <bs_test_lab2.h>
+#include <slub_test_lab2.h>
+#endif
+
 int kern_init(void) __attribute__((noreturn));
 void grade_backtrace(void);
 void print_kerninfo(void);
@@ -43,6 +48,11 @@ int kern_init(void) {
 
     // grade_backtrace();
     pmm_init();  // init physical memory management
+
+    #ifdef ucore_test
+        test_buddy_system();
+        slub_check();
+    #endif
 
     /* do nothing */
     while (1)

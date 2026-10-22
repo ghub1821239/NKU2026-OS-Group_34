@@ -23,7 +23,7 @@ make_print() {
     echo `$make $makeopts print-$1`
 }
 
-echo `$make`
+echo `$make DEFS="$DEFS -DLAB2_GRADE"`
 
 ## command tools
 awk='awk'

@@ -111,7 +111,9 @@ KSRCDIR		+= kern/init \
 KCFLAGS		+= $(addprefix -I,$(KINCLUDE))
 
 ifeq ($(MAKECMDGOALS),test)
+KCFLAGS += -Itools
 $(call add_files_cc2,$(call listf_cc,$(KSRCDIR)),kernel,$(KCFLAGS))
+$(call add_files_cc2,tools/bs_test_lab2.c tools/slub_test_lab2.c,kernel,$(KCFLAGS))
 else
 $(call add_files_cc,$(call listf_cc,$(KSRCDIR)),kernel,$(KCFLAGS))
 endif
@@ -271,3 +273,7 @@ tags:
 	$(V)find . -type f -name "*.[chS]" >cscope.files
 	$(V)cscope -bq 
 	$(V)ctags -L cscope.files
+
+
+kill:
+	@ps -eo pid,user,args | grep '[q]emu-system-riscv64'
