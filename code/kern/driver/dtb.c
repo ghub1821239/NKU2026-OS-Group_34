@@ -107,7 +107,7 @@ static uint64_t memory_size = 0;
 void dtb_init(void) {
     cprintf("DTB Init\n");
     cprintf("HartID: %ld\n", boot_hartid);
-    cprintf("DTB Address: 0x%lx\n",  );
+    cprintf("DTB Address: 0x%lx\n", boot_dtb);
     
     if (boot_dtb == 0) {
         cprintf("Error: DTB address is null\n");

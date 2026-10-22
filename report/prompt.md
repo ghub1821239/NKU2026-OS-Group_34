@@ -55,3 +55,56 @@ best_fit_alloc_pages(n)：
 1. 当 n > nr_free 或链表中没有 property >= n 的块时，返回 NULL
 2. 如果能找到就从链表中删除，并清除PG_property，nr_free同步减去空闲页数量
 ```
+
+## 功能模块二 任务三：Buddy System（伙伴系统）分配算法
+
+```text
+【prompt】
+更改目前的空页管理，不同于default_pmm.c 中只采用一个free_area_t创建单条链表进行管理，并且空闲页的定义更加严苛——存储块的大小必须是2的n次幂。
+参考 pmm.c 和 pmm.h 的接口生成对应的buddy system 的 bs_pmm.c bs_pmm.h 即可，其他文件不要进行接口的修改。
+生成后记得同步更改 pmm.c 中的调用
+pmm_manager = &best_fit_pmm_manager;->pmm_manager = &bs_pmm_manager;
+并同步更改头文件；
+【rely】
+page 的定义在memlayout.h中；
+参考typedef struct {
+    list_entry_t free_list;         // the list header
+    unsigned int nr_free;           // number of free pages in this free list
+} free_area_t;
+pmm_manager的定义在code/kern/mm/pmm.h;
+【guarantee】
+可以使用分层管理，第一层管理 2 的幂次的首页 base 地址，然后每一个 base 地址第二层管理和原 default_pmm.c 逻辑类似。
+// 在 kern/mm/bs_pmm.h 中声明并在 kern/mm/bs_pmm.c 中定义：
+extern const struct pmm_manager bs_pmm_manager;
+
+// 在 kern/mm/bs_pmm.c 中实现的内部接口：
+static void bs_init(void);
+static void bs_init_memmap(struct Page *base, size_t n);
+static struct Page *bs_alloc_pages(size_t n);
+static void bs_free_pages(struct Page *base, size_t n);
+static size_t bs_nr_free_pages(void);
+static void bs_check(void);
+【specification】
+buddy system 实现要求如下：
+实现一个 free_area_t 类型的数组free_area，free_area[k]管理的是 2^k 大小的页；
+    1. 注意要实现对页的划分，贪心从基地放入每个存储块最大能发下的 2^k 的页，然后循环多次，存储块内存空间就会得到充分利用：
+        示例：7页大小的空闲块，先尝试放入 k=2 ，剩余 3，之后放入  k=1 ，剩余 1，再把这部分放入 k=0 即可完成利用
+    2. 释放的时候需要检查临近的同大小的块是否空闲，如果空闲可以合并成 2^k+1 的空闲页
+```
+
+## 功能模块二 任务三：Buddy System 测试（bs_test_lab2）
+
+```text
+【prompt】
+新增 bs_test_lab2.c bs_test_lab2.h 两个测试文件供 buddy system 的测试；
+【rely】
+类似 test_lab2.c 中的test_best_fit写一个 test_buddy_system 用来检测当前测试的是否是 bs 算法，如果不是panic 返回；
+【gurantee】
+确保只生成bs_test_lab2.c bs_test_lab2.h，其他的文件均不进行修改，也不新增其他的文件
+【specification】
+case:
+    1. 测试算法对空闲页的分配情况，首先测试幂次能否正确对应，如 8 页对应 k=3；其次测试非 2 幂次的页会如何分配，比如 7 能否依次拆分分配到 k=2 k=1 k=0;
+    2. 测试算法释放页时能否合并相邻页，比如相邻存储块隶属于 k=2 目前为空，本存储块释放后应该和相邻存储块合并成一个大块，然后继续检测能否合并，如果不行就挂载到 k=3，否则继续迭代；
+    3. 测试对申请空间超出最大分配/不满足>0 的情况能否正常 panic报错
+生成后请运行检测并报告测试情况
+```
