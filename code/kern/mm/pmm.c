@@ -1,5 +1,6 @@
 #include <default_pmm.h>
 #include <bs_pmm.h>
+#include <slub.h>
 #include <defs.h>
 #include <error.h>
 #include <memlayout.h>
@@ -44,10 +45,21 @@ static void init_memmap(struct Page *base, size_t n) {
     pmm_manager->init_memmap(base, n);
 }
 
-// alloc_pages - call pmm->alloc_pages to allocate a continuous n*PAGESIZE
-// memory
+// alloc_pages - allocate a continuous n*PAGESIZE memory block.
+// Page allocation goes through SLUB first: requests larger than 2048 bytes
+// (every whole-page request, since PGSIZE is 4096) are forwarded by SLUB to
+// the current pmm manager unchanged; smaller byte-sized requests can be
+// served by slub_alloc() directly.
 struct Page *alloc_pages(size_t n) {
-    return pmm_manager->alloc_pages(n);
+    if (n > (size_t)-1 / PGSIZE) {
+        return NULL;
+    }
+
+    void *ptr = slub_alloc(n * PGSIZE);
+    if (ptr == NULL) {
+        return NULL;
+    }
+    return pa2page((uintptr_t)ptr - va_pa_offset);
 }
 
 // free_pages - call pmm->free_pages to free a continuous n*PAGESIZE memory
@@ -61,7 +73,7 @@ size_t nr_free_pages(void) {
     return pmm_manager->nr_free_pages();
 }
 
-//lab2 function1 YOUR CODE
+//lab2 function1 2413633
 
 /* page_init - detect physical memory and build the page descriptor array */
 static void page_init(void) {
@@ -130,6 +142,10 @@ void pmm_init(void) {
     // Then pmm can alloc/free the physical memory.
     // Now the first_fit/best_fit/worst_fit/buddy_system pmm are available.
     init_pmm_manager();
+
+    // Initialize the SLUB object caches; page allocation is dispatched
+    // through SLUB from now on.
+    slub_init();
 
     // detect physical memory space, reserve already used memory,
     // then use pmm->init_memmap to create free page list

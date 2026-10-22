@@ -108,3 +108,49 @@ case:
     3. 测试对申请空间超出最大分配/不满足>0 的情况能否正常 panic报错
 生成后请运行检测并报告测试情况
 ```
+
+## 功能模块三：SLUB 分配器（任意大小的内存单元）
+
+```text
+【prompt】
+现在的链路是 pmm.c 直接去调用Buddy System/first-fit /best-fit 的算法去分配页面，目前需要你新增一层，使用SLUB 作为中转来控制页面分配，新建 kern/mm/slub.h 和 kern/mm/slub.c
+【rely】
+目前分配页面调用的是pmm.c 中pmm_manager对应的地址下的alloc_pages、free_pages；
+分配完页面切分的时候以及回收会用到page2pa、pa2page，在 pmm.h 中
+【guarantee】
+只新增文件以实现实现 SLUB 算法，并同步更改 pmm.c 中调用的逻辑，加上 SLUB 一层分支判定。其他文件不应修改。
+新建slub_init(void)、void *slub_alloc(size_t size)、void slub_free(void *ptr)、void slub_check(void) 四个接口
+【specification】
+post-condition:
+进行分配块大小分流，pmm.c 中调用的页面分配先经过SLUB判断，如果分配的块超过了 2048B 那么直接走原来的算法，以页为单位分配即可，如果<2048B 那么内部维护一个 2 的幂次的对应页进行分配。
+数据结构：采用链表，只对头进行操作，从而不需要遍历，分配的时候拿出链表头进行使用，释放的时候压栈到链表头即可。
+case:
+1. 如果对应大小的页分配完了/之前没分配相关页：申请一页进行划分，串联成链表，按照对链表头 push/pop 的形式进行分配；比如需要 64B 的那么如果现在没有 64B 对应的页，就调用alloc_pages(n)申请一页用于 64B 的块，可以拆分成 64 个 64B 的块进行分配。
+2. 如果分配的大小非 2 的整数幂次，那就向上取整进行分配；比如 70B 向上取整到 128B，寻找 128B 对应的页块分配
+3. 释放内存时：通过paddr反查所属的页,若为>2048B直接调用底层 free_pages 归还;若是SLUB 小块，将其 push 回所属页的链表头。如果该页中所有划分出的小块已全部归还，则调用 free_pages整页释放
+【补充】
+分配的最小块最小是8B ，因为指针在挂取的时候都会占用 32 位
+```
+
+## 功能模块三 任务四：SLUB 测试（slub_test_lab2）
+
+```text
+【prompt】
+新建测试 slub 算法的测试 slub_test_lab2.c slub_test_lab2.h 不要改动分配器已有核心逻辑，也不要更改其他无关的已存在的文件接口
+【rely】
+SLUB 接口、数据结构及分流规则见 kern/mm/slub.h、kern/mm/slub.c；
+物理页管理接口见 kern/mm/pmm.h；
+【guarantee】
+实现并声明：
+void slub_check(void);
+【specification】
+Pre-Condition：
+底层物理页分配器和 SLUB 已初始化，具备执行正常分配测试的可用内存。
+Post-Condition：
+使用 assert 校验以下行为：
+1. 不同尺寸及分档边界的分配、读写和释放正确，各对象互不干扰；
+2. 小对象与大对象的分配符合要求
+3. 跨页分配与整页回收正确，释放全部测试对象后，空闲物理页数恢复测试前水平
+4. 能正确处理零大小/超大申请、释放 NULL
+完成后执行可用的测试，报告结果及未验证项。
+```
