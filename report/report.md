@@ -250,9 +250,24 @@ typedef struct {
 
 这里的 `Page` 指针加法按描述符元素数移动：`page + n` 对应后移 n 个物理页，物理地址相差 `n × PGSIZE`。
 
-**思考题：First-Fit 是否有改进空间？**
+##### 源码缺陷：`default_free_pages()` 尾插分支缺少 `break`
 
-从代码细节来看，原框架 `default_free_pages()` 在按地址遍历寻找插入位置时，`else if (list_next(le) == &free_list)` 尾插分支缺少一句 `break` 会导致：当新释放的块地址大于链表中所有已有块时，执行 `list_add(le, &(base->page_link))` 后循环没有立即跳出，`while` 条件在下一次迭代会继续访问刚插入的 `base->page_link`。
+**问题位置：** `default_pmm.c` 中 `default_free_pages()` 的 `else if (list_next(le) == &free_list)` 分支。当前源码在执行尾插后缺少 `break`。
+
+**触发条件与后果：** 空闲链表非空，且新释放块 `base` 的地址大于所有已有空闲块。尾插完成后，下一轮循环会访问刚插入的 `base->page_link`，再次进入尾插分支，把该节点插入自身之后。按本实验 `list_add()` 的实现，这会使节点的 `prev` 指向自身，破坏双向链表。后续 `list_del()` 无法正确摘除该块，可能造成同一物理页被重复分配。
+
+**修正方式：** 尾插完成后立即退出查找循环：
+
+```c
+} else if (list_next(le) == &free_list) {
+    list_add(le, &(base->page_link));
+    break;
+}
+```
+
+**复核结果：** 使用项目中的 `list.h` 构造一个低地址已有块和一个高地址待释放块。缺少 `break` 时，新节点的 `prev` 指向自身，删除后仍留在链表中；在最小复现中补上 `break` 后，前后指针及节点删除结果均正确。
+
+**思考题：First-Fit 是否有改进空间？**
 
 从算法策略来看，First-Fit 每次都从低地址头部开始线性扫描，容易在低地址区域积聚大量难以利用的外部小碎片，拉长后续查找时间，最坏时间复杂度为 $O(m)$。改进方向可以采用记录上次扫描位置的 Next-Fit 策略减少重复扫描，或按大小分桶缩小搜索范围；若维护按块长排序的平衡树，可将选块查找降至 $O(\log m)$。
 
