@@ -463,6 +463,18 @@ CPU 内部使用快表 TLB 缓存近期完成的虚拟页号到物理页号的�
 
 QEMU 的慢路径从 `load_helper()` 经 `riscv_cpu_tlb_fill()` 进入 `get_physical_address()`。根表项是 1 GiB 叶子，查询在根层完成；结果与 OpenSBI 传入的 DTB 物理地址一致。随后 `tlb_set_page()` 回填软件 TLB。取指调试还分别捕获了主表冲突后的 victim TLB 恢复，以及标签匹配时的主表直接命中，记录中的 `TLB_DIRECT_HIT=0` 与 `TLB_DIRECT_HIT=1` 对应这两条路径。
 
+在 QEMU 4.1.1 的 `accel/tcg/cputlb.c` 中，`load_helper()` 通过 `if (!tlb_hit(tlb_addr, addr))` 判断主表是否未命中；未命中时先检查 victim TLB，仍未命中才调用 `tlb_fill()`，经 `riscv_cpu_tlb_fill()` 进入页表遍历。这里记录的是进入 C 辅助函数的路径，普通 RAM 访问的命中快路径也可以由 TCG 生成的宿主指令直接完成。
+
+`target/riscv/cpu_helper.c` 中的 `get_physical_address()` 每轮取出一级 9 位索引，按 `pte_addr = base + idx * 8` 读取 PTE。`V=0` 时翻译失败；`R/W/X` 全为 0 时，将下一张页表的物理地址赋给 `base` 并继续循环；遇到叶子项后，检查权限及大页对齐，再组合物理地址。本次观测在根表就找到叶子项，因此只读一个 PTE，使用虚拟地址低 30 位作为 1 GiB 页内偏移。
+
+#### 4.4.4 QEMU 软件 TLB 与真实 CPU TLB 的区别
+
+真实 CPU 的 TLB 由硬件维护，缓存虚拟页到物理页的翻译及访问权限。QEMU TCG 使用软件结构 `CPUTLBEntry` 加速模拟访存，其中 `addr_read`、`addr_write`、`addr_code` 分别用于读、写、取指的标签检查，普通 RAM 项的 `addend` 用于由客体地址计算宿主 RAM 指针。因此，这个缓存还承担了快速定位宿主内存的作用。
+
+宿主记录中还观察到：在 `satp=0` 的 Bare 模式下，`get_physical_address()` 直接令 `*physical = addr`，但随后仍执行 `tlb_set_page()`，其 `vaddr` 与 `paddr` 都为 `0x80200000`。这说明客体关闭分页后，QEMU 的软件 TLB 仍可用于加速客体地址到宿主访问位置的转换。宿主 CPU 自己的硬件 TLB 则继续负责 QEMU 进程的宿主虚拟地址到宿主物理地址的转换。
+
+调试中还发现，客体虽然使用 1 GiB 大页，QEMU 此处仍按 4 KiB 目标页填充软件 TLB。代码页与 DTB 页发生主表索引冲突后，可以从 victim TLB 恢复；主表未命中也可能由 victim 命中解决，无需重新遍历页表。这个现象对应宿主记录中先出现的 `TLB_DIRECT_HIT=0`，随后再次访问时出现 `TLB_DIRECT_HIT=1`。
+
 ### 4.5 实验验证与结果
 
 #### 4.5.1 构建目标与测试入口
