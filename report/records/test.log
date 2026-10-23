@@ -1,0 +1,77 @@
++ cc kern/init/entry.S
++ cc kern/init/init.c
++ cc kern/libs/stdio.c
++ cc kern/debug/panic.c
++ cc kern/driver/console.c
++ cc kern/driver/dtb.c
++ cc kern/mm/best_fit_pmm.c
++ cc kern/mm/bs_pmm.c
++ cc kern/mm/default_pmm.c
++ cc kern/mm/pmm.c
++ cc kern/mm/slub.c
++ cc tools/bs_test_lab2.c
++ cc tools/slub_test_lab2.c
++ cc libs/printfmt.c
++ cc libs/readline.c
++ cc libs/sbi.c
++ cc libs/string.c
++ ld bin/kernel
+riscv64-unknown-elf-objcopy bin/kernel --strip-all -O binary bin/ucore.img
+
+OpenSBI v0.4 (Jul  2 2019 11:53:53)
+   ____                    _____ ____ _____
+  / __ \                  / ____|  _ \_   _|
+ | |  | |_ __   ___ _ __ | (___ | |_) || |
+ | |  | | '_ \ / _ \ '_ \ \___ \|  _ < | |
+ | |__| | |_) |  __/ | | |____) | |_) || |_
+  \____/| .__/ \___|_| |_|_____/|____/_____|
+        | |
+        |_|
+
+Platform Name          : QEMU Virt Machine
+Platform HART Features : RV64ACDFIMSU
+Platform Max HARTs     : 8
+Current Hart           : 0
+Firmware Base          : 0x80000000
+Firmware Size          : 112 KB
+Runtime SBI Version    : 0.1
+
+PMP0: 0x0000000080000000-0x000000008001ffff (A)
+PMP1: 0x0000000000000000-0xffffffffffffffff (A,R,W,X)
+DTB Init
+HartID: 0
+DTB Address: 0x82200000
+Physical Memory from DTB:
+  Base: 0x0000000080000000
+  Size: 0x0000000008000000 (128 MB)
+  End:  0x0000000087ffffff
+DTB init completed
+(THU.CST) os is loading ...
+Special kernel symbols:
+  entry  0xffffffffc02000d8 (virtual)
+  etext  0xffffffffc0202eaa (virtual)
+  edata  0xffffffffc0208018 (virtual)
+  end    0xffffffffc0208480 (virtual)
+Kernel executable memory footprint: 33KB
+memory management: bs_pmm_manager
+Physical memory: [0x0000000080000000, 0x0000000088000000), npage = 0x88000
+check_alloc_page() succeeded!
+satp virtual address: 0xffffffffc0207000
+satp physical address: 0x0000000080207000
+[Buddy Test] current algorithm is bs_pmm_manager: PASS
+[Buddy Test] power-of-two allocation (8 pages -> k=3): PASS
+[Buddy Test] non-power-of-two allocation (7 pages -> 8 pages): PASS
+[Buddy Test] 7-page decomposition (4 + 2 + 1): PASS
+[Buddy Test] adjacent free block merge (k=3 + k=3 -> k=4): PASS
+[Buddy Test] oversize request returns NULL: PASS
+[Buddy Test] ALL PASS
+[SLUB Test] begin
+[SLUB Test] size boundaries and rounding: PASS
+[SLUB Test] 256 mixed live objects stay isolated: PASS
+[SLUB Test] 64B slab whole-page reclaim: PASS
+[SLUB Test] 2048B slab whole-page reclaim: PASS
+[SLUB Test] 4097B cross-page allocation: PASS
+[SLUB Test] oversized allocation and free(NULL): PASS
+[SLUB Test] alloc_pages/free_pages page path: PASS
+[SLUB Test] ALL PASS
+make test exit code: 124

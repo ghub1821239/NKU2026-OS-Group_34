@@ -1,0 +1,39 @@
+The target architecture is set to "riscv:rv64".
++file bin/kernel
++target remote 127.0.0.1:2235
+0x0000000000001000 in ?? ()
++thbreak *0x80200034
+Hardware assisted breakpoint 1 at 0x80200034
++continue
+
+Temporary breakpoint 1, 0x0000000080200034 in ?? ()
++x/gx 0x80205010
+0x80205010:	0x00000000200000cf
++set {unsigned long long}0x80205010 = 0
++info registers pc satp
+pc             0x80200034	0x80200034
+satp           0x0	0
++si
+0x0000000080200038 in ?? ()
++info registers pc satp
+pc             0x80200038	0x80200038
+satp           0x8000000000080205	-9223372036854251003
++python
+=> 0x80200038:	EXPECTED_UNMAPPED_LOW_PC: Cannot access memory at address 0x80200038
++set {unsigned long long}0xffffffffc0205010 = 0x200000cf
++x/i $pc
+=> 0x80200038:	sfence.vma
++thbreak *kern_init
+Hardware assisted breakpoint 2 at 0xffffffffc02000d8: file kern/init/init.c, line 35.
++continue
+
+Temporary breakpoint 2, kern_init () at kern/init/init.c:35
+35	    memset(edata, 0, end - edata);
++info registers pc scause stval satp
+pc             0xffffffffc02000d8	0xffffffffc02000d8 <kern_init>
+scause         0x0	0
+stval          0x0	0
+satp           0x8000000000080205	-9223372036854251003
++detach
+[Inferior 1 (process 1) detached]
++quit

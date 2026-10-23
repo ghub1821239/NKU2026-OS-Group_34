@@ -1,0 +1,254 @@
++break get_physical_address if addr == 0x80200000 && mmu_idx == 1 && access_type == 2 && env->satp == 0
+Breakpoint 1 at 0x396f3d: file /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c, line 158.
++run
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[Switching to Thread 0x7ffff5b0f640 (LWP 6346)]
+
+Thread 3 "qemu-system-ris" hit Breakpoint 1, get_physical_address (env=0x5555563074a0, physical=0x7ffff5b0e430, prot=0x7ffff5b0e424, addr=2149580800, access_type=2, mmu_idx=1) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:158
+158	{
++printf "\nPHASE: Bare-mode instruction fetch\n"
+
+PHASE: Bare-mode instruction fetch
++bt 5
+#0  get_physical_address (env=0x5555563074a0, physical=0x7ffff5b0e430, prot=0x7ffff5b0e424, addr=2149580800, access_type=2, mmu_idx=1) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:158
+#1  0x00005555558ebc19 in riscv_cpu_tlb_fill (cs=0x5555562fea90, address=2149580800, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:451
+#2  0x0000555555831ef4 in tlb_fill (cpu=0x5555562fea90, addr=2149580800, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, retaddr=0) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:878
+#3  0x00005555558325b0 in get_page_addr_code (env=0x5555563074a0, addr=2149580800) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1032
+#4  0x0000555555857076 in tb_htable_lookup (cpu=0x5555562fea90, pc=2149580800, cs_base=0, flags=24577, cf_mask=4278714368) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cpu-exec.c:339
++p/x addr
+$1 = 0x80200000
++p/x env->satp
+$2 = 0x0
++until /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:197
+get_physical_address (env=0x5555563074a0, physical=0x7ffff5b0e430, prot=0x7ffff5b0e424, addr=2149580800, access_type=2, mmu_idx=1) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:197
+197	            *physical = addr;
++next
+198	            *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
++p/x *physical
+$3 = 0x80200000
++finish
+0x00005555558ebc19 in riscv_cpu_tlb_fill (cs=0x5555562fea90, address=2149580800, size=0, access_type=MMU_INST_FETCH, mmu_idx=1, probe=false, retaddr=0) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:451
+451	    ret = get_physical_address(env, &pa, &prot, address, access_type, mmu_idx);
+Value returned is $4 = 0
++break tlb_set_page if vaddr == 0x80200000 && mmu_idx == 1
+Breakpoint 2 at 0x555555831de9: file /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c, line 847.
++continue
+
+Thread 3 "qemu-system-ris" hit Breakpoint 2, tlb_set_page (cpu=0x5555562fea90, vaddr=2149580800, paddr=2149580800, prot=7, mmu_idx=1, size=4096) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:847
+847	    tlb_set_page_with_attrs(cpu, vaddr, paddr, MEMTXATTRS_UNSPECIFIED,
++printf "\nPHASE: Software TLB fill also happens in Bare mode\n"
+
+PHASE: Software TLB fill also happens in Bare mode
++p/x vaddr
+$5 = 0x80200000
++p/x paddr
+$6 = 0x80200000
++p mmu_idx
+$7 = 1
++delete breakpoints
++break load_helper if addr == 0xffffffffc2200000
+Breakpoint 3 at 0x555555832dbc: load_helper. (14 locations)
++continue
+
+Thread 3 "qemu-system-ris" hit Breakpoint 3, load_helper (full_load=0x5555558341ff <full_le_ldul_mmu>, code_read=false, big_endian=false, size=4, retaddr=140737186365756, oi=97, addr=18446744072671461376, env=0x5555563074a0) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1252
+1252	    uintptr_t mmu_idx = get_mmuidx(oi);
++printf "\nPHASE: DTB load and software TLB miss\n"
+
+PHASE: DTB load and software TLB miss
++bt 6
+#0  load_helper (full_load=0x5555558341ff <full_le_ldul_mmu>, code_read=false, big_endian=false, size=4, retaddr=140737186365756, oi=97, addr=18446744072671461376, env=0x5555563074a0) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1252
+#1  full_le_ldul_mmu (env=0x5555563074a0, addr=18446744072671461376, oi=97, retaddr=140737186365756) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1423
+#2  0x00005555558348e9 in helper_le_ldul_mmu (env=0x5555563074a0, addr=18446744072671461376, oi=97, retaddr=140737186365756) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1430
+#3  0x00007fffee000204 in code_gen_buffer ()
+#4  0x0000555555856b20 in cpu_tb_exec (cpu=0x5555562fea90, itb=0x7fffee000040 <code_gen_buffer+19>) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cpu-exec.c:173
+#5  0x0000555555857966 in cpu_loop_exec_tb (cpu=0x5555562fea90, tb=0x7fffee000040 <code_gen_buffer+19>, last_tb=0x7ffff5b0e698, tb_exit=0x7ffff5b0e690) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cpu-exec.c:621
++p/x addr
+$8 = 0xffffffffc2200000
++until /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1271
+load_helper (full_load=0x5555558341ff <full_le_ldul_mmu>, code_read=false, big_endian=false, size=4, retaddr=140737186365756, oi=97, addr=18446744072671461376, env=0x5555563074a0) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1271
+1271	    if (!tlb_hit(tlb_addr, addr)) {
++p/x tlb_addr
+$9 = 0xffffffffc0200000
++p/x entry->addr_read
+$10 = 0xffffffffc0200000
++p/x addr & ~0xfffUL
+$11 = 0xffffffffc2200000
++delete breakpoints
++break get_physical_address if addr == 0xffffffffc2200000 && access_type == 0
+Breakpoint 4 at 0x5555558eaf3d: file /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c, line 158.
++continue
+
+Thread 3 "qemu-system-ris" hit Breakpoint 4, get_physical_address (env=0x5555563074a0, physical=0x7ffff5b0df80, prot=0x7ffff5b0df74, addr=18446744072671461376, access_type=0, mmu_idx=1) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:158
+158	{
++printf "\nPHASE: Sv39 page-table walk\n"
+
+PHASE: Sv39 page-table walk
++bt 6
+#0  get_physical_address (env=0x5555563074a0, physical=0x7ffff5b0df80, prot=0x7ffff5b0df74, addr=18446744072671461376, access_type=0, mmu_idx=1) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:158
+#1  0x00005555558ebc19 in riscv_cpu_tlb_fill (cs=0x5555562fea90, address=18446744072671461376, size=4, access_type=MMU_DATA_LOAD, mmu_idx=1, probe=false, retaddr=140737186365756) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:451
+#2  0x0000555555831ef4 in tlb_fill (cpu=0x5555562fea90, addr=18446744072671461376, size=4, access_type=MMU_DATA_LOAD, mmu_idx=1, retaddr=140737186365756) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:878
+#3  0x0000555555834435 in load_helper (full_load=0x5555558341ff <full_le_ldul_mmu>, code_read=false, big_endian=false, size=4, retaddr=140737186365756, oi=97, addr=18446744072671461376, env=0x5555563074a0) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1274
+#4  full_le_ldul_mmu (env=0x5555563074a0, addr=18446744072671461376, oi=97, retaddr=140737186365756) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1423
+#5  0x00005555558348e9 in helper_le_ldul_mmu (env=0x5555563074a0, addr=18446744072671461376, oi=97, retaddr=140737186365756) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1430
++p/x env->satp
+$12 = 0x8000000000080205
++p/x addr
+$13 = 0xffffffffc2200000
++p access_type
+$14 = 0
++p mmu_idx
+$15 = 1
++until /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:237
+get_physical_address (env=0x5555563074a0, physical=0x7ffff5b0df80, prot=0x7ffff5b0df74, addr=18446744072671461376, access_type=0, mmu_idx=1) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:237
+237	    for (i = 0; i < levels; i++, ptshift -= ptidxbits) {
++p levels
+$16 = 3
++p ptidxbits
+$17 = 9
++p ptesize
+$18 = 8
++p/x base
+$19 = 0x80205000
++p ptshift
+$20 = 18
++until /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:254
+get_physical_address (env=0x5555563074a0, physical=0x7ffff5b0df80, prot=0x7ffff5b0df74, addr=18446744072671461376, access_type=0, mmu_idx=1) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:254
+254	        target_ulong ppn = pte >> PTE_PPN_SHIFT;
++p i
+$21 = 0
++p/x idx
+$22 = 0x1ff
++p/x pte_addr
+$23 = 0x80205ff8
++p/x pte
+$24 = 0x200000cf
++next
+256	        if (!(pte & PTE_V)) {
++p/x ppn
+$25 = 0x80000
++until /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:334
+get_physical_address (env=0x5555563074a0, physical=0x7ffff5b0df80, prot=0x7ffff5b0df74, addr=18446744072671461376, access_type=0, mmu_idx=1) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:334
+334	            *physical = (ppn | (vpn & ((1L << ptshift) - 1))) << PGSHIFT;
++p ptshift
+$26 = 18
++next
+337	            if ((pte & PTE_R) || ((pte & PTE_X) && mxr)) {
++p/x *physical
+$27 = 0x82200000
++finish
+0x00005555558ebc19 in riscv_cpu_tlb_fill (cs=0x5555562fea90, address=18446744072671461376, size=4, access_type=MMU_DATA_LOAD, mmu_idx=1, probe=false, retaddr=140737186365756) at /home/huang/OS/tools/qemu-4.1.1/target/riscv/cpu_helper.c:451
+451	    ret = get_physical_address(env, &pa, &prot, address, access_type, mmu_idx);
+Value returned is $28 = 0
++p/x pa
+$29 = 0x82200000
++delete breakpoints
++break tlb_set_page if vaddr == 0xffffffffc2200000
+Breakpoint 5 at 0x555555831de9: file /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c, line 847.
++continue
+
+Thread 3 "qemu-system-ris" hit Breakpoint 5, tlb_set_page (cpu=0x5555562fea90, vaddr=18446744072671461376, paddr=2183135232, prot=7, mmu_idx=1, size=4096) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:847
+847	    tlb_set_page_with_attrs(cpu, vaddr, paddr, MEMTXATTRS_UNSPECIFIED,
++printf "\nPHASE: Fill virtual/physical mapping and host addend\n"
+
+PHASE: Fill virtual/physical mapping and host addend
++p/x vaddr
+$30 = 0xffffffffc2200000
++p/x paddr
+$31 = 0x82200000
++p prot
+$32 = 7
++p mmu_idx
+$33 = 1
++step
+tlb_set_page_with_attrs (cpu=0x5555562fea90, vaddr=18446744072671461376, paddr=2183135232, attrs=..., prot=7, mmu_idx=1, size=4096) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:700
+700	{
++until /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:804
+tlb_set_page_with_attrs (cpu=0x5555562fea90, vaddr=18446744072671461376, paddr=2183135232, attrs=..., prot=7, mmu_idx=1, size=4096) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:804
+804	    tn.addend = addend - vaddr_page;
++p/x addend
+$34 = 0x7fffe2000000
++p/x vaddr_page
+$35 = 0xffffffffc2200000
++next
+805	    if (prot & PAGE_READ) {
++p/x tn.addend
+$36 = 0x80001fe00000
++until /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:836
+tlb_set_page_with_attrs (cpu=0x5555562fea90, vaddr=18446744072671461376, paddr=2183135232, attrs=..., prot=7, mmu_idx=1, size=4096) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:836
+836	    tlb_n_used_entries_inc(env, mmu_idx);
++p/x tn.addr_read
+$37 = 0xffffffffc2200000
++p/x tn.addr_code
+$38 = 0xffffffffc2200000
++p/x tn.addend
+$39 = 0x80001fe00000
++next
+837	    qemu_spin_unlock(&tlb->c.lock);
++p/x te->addr_read
+$40 = 0xffffffffc2200000
++p/x te->addend
+$41 = 0x80001fe00000
++delete breakpoints
++break /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1030 if addr >= 0xffffffffc0200000 && addr < 0xffffffffc0201000 && env->priv == 1
+Breakpoint 6 at 0x555555832526: file /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c, line 1030.
++continue
+
+Thread 3 "qemu-system-ris" hit Breakpoint 6, get_page_addr_code (env=0x5555563074a0, addr=18446744072637907654) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1030
+1030	    if (unlikely(!tlb_hit(entry->addr_code, addr))) {
++printf "\nPHASE: Direct-mapped TLB collision and victim-cache recovery\n"
+
+PHASE: Direct-mapped TLB collision and victim-cache recovery
++p/x addr
+$42 = 0xffffffffc02002c6
++p/x entry->addr_code
+$43 = 0xffffffffc2200000
++p/x entry->addend
+$44 = 0x80001fe00000
++printf "TLB_DIRECT_HIT=%d\n", entry->addr_code == (addr & ~0xfffUL)
+TLB_DIRECT_HIT=0
++next
+1031	        if (!VICTIM_TLB_HIT(addr_code, addr)) {
++next
+1036	        assert(tlb_hit(entry->addr_code, addr));
++p/x entry->addr_code
+$45 = 0xffffffffc0200000
++until /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1051
+get_page_addr_code (env=0x5555563074a0, addr=18446744072637907654) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1051
+1051	    p = (void *)((uintptr_t)addr + entry->addend);
++next
+1052	    return qemu_ram_addr_from_host_nofail(p);
++p/x p
+$46 = 0x7fffe00002c6
++delete breakpoints
++break /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1030 if addr >= 0xffffffffc0200000 && addr < 0xffffffffc0201000 && env->priv == 1 && entry->addr_code == (addr & ~0xfffUL)
+Breakpoint 7 at 0x555555832526: file /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c, line 1030.
++continue
+
+Thread 3 "qemu-system-ris" hit Breakpoint 7, get_page_addr_code (env=0x5555563074a0, addr=18446744072637907654) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1030
+1030	    if (unlikely(!tlb_hit(entry->addr_code, addr))) {
++printf "\nPHASE: Real instruction TLB hit\n"
+
+PHASE: Real instruction TLB hit
++p/x addr
+$47 = 0xffffffffc02002c6
++p/x entry->addr_code
+$48 = 0xffffffffc0200000
++printf "TLB_DIRECT_HIT=%d\n", entry->addr_code == (addr & ~0xfffUL)
+TLB_DIRECT_HIT=1
++next
+1039	    if (unlikely(entry->addr_code & (TLB_RECHECK | TLB_MMIO))) {
++until /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1051
+get_page_addr_code (env=0x5555563074a0, addr=18446744072637907654) at /home/huang/OS/tools/qemu-4.1.1/accel/tcg/cputlb.c:1051
+1051	    p = (void *)((uintptr_t)addr + entry->addend);
++next
+1052	    return qemu_ram_addr_from_host_nofail(p);
++p/x p
+$49 = 0x7fffe00002c6
++printf "\nPHASE: Trace complete; return control to guest GDB\n"
+
+PHASE: Trace complete; return control to guest GDB
++detach
+[Inferior 1 (process 6339) detached]
++quit
+qemu-system-riscv64: terminating on signal 15 from pid 6308 (python3)

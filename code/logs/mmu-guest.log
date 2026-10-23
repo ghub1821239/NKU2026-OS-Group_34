@@ -1,0 +1,117 @@
+The target architecture is set to "riscv:rv64".
++file bin/kernel
++target remote 127.0.0.1:2234
+0x0000000000001000 in ?? ()
++thbreak *0xffffffffc020028a
+Hardware assisted breakpoint 1 at 0xffffffffc020028a: file kern/driver/dtb.c, line 129.
++continue
+
+Temporary breakpoint 1, dtb_init () at kern/driver/dtb.c:129
+129	    uint32_t magic = fdt32_to_cpu(header->magic);
++printf "\nGUEST: DTB load instruction before execution\n"
+
+GUEST: DTB load instruction before execution
++info registers pc a4 satp sp
+pc             0xffffffffc020028a	0xffffffffc020028a <dtb_init+106>
+a4             0xffffffffc2200000	-1038090240
+satp           0x8000000000080205	-9223372036854251003
+sp             0xffffffffc0204f70	0xffffffffc0204f70
++x/i $pc
+=> 0xffffffffc020028a <dtb_init+106>:	lw	a5,0(a4)
++thbreak kern/init/init.c:58
+Hardware assisted breakpoint 2 at 0xffffffffc0200110: file kern/init/init.c, line 58.
++continue
+
+Temporary breakpoint 2, kern_init () at kern/init/init.c:58
+58	    while (1)
++printf "\nGUEST: Initialization and allocation checks completed\n"
+
+GUEST: Initialization and allocation checks completed
++info registers pc sp satp
+pc             0xffffffffc0200110	0xffffffffc0200110 <kern_init+56>
+sp             0xffffffffc0204ff0	0xffffffffc0204ff0
+satp           0x8000000000080205	-9223372036854251003
++p/x va_pa_offset
+$1 = 0xffffffff40000000
++p/x pages
+$2 = 0xffffffffc0207000
++p/x npage
+$3 = 0x88000
++p/x nbase
+$4 = 0x80000
++p/d sizeof(struct Page)
+$5 = 40
++p pmm_manager->name
+$6 = 0xffffffffc0201fc0 "bs_pmm_manager"
++set $free_total = 0
++set $order = 0
++while $order < 32
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
+++set $free_total = $free_total + 'bs_pmm.c'::free_area[$order].nr_free
+++set $order = $order + 1
++p/d $free_total
+$7 = 31929
++detach
+[Inferior 1 (process 1) detached]
++quit

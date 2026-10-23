@@ -1,0 +1,2 @@
+# Preserve captured terminal output verbatim.
+*.log -whitespace

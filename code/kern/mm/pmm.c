@@ -87,7 +87,8 @@ static void page_init(void) {
     uint64_t mem_size = get_memory_size();
 
     // 设备树信息无效：报错并终止初始化，不再继续建立空闲页
-    if (mem_base == 0 || mem_size == 0) {
+    if (mem_base != DRAM_BASE || mem_size == 0 ||
+        mem_size > ~(uint64_t)0 - mem_base) {
         panic("page_init: invalid memory info from DTB (base=0x%lx, size=0x%lx)",
               mem_base, mem_size);
     }
@@ -113,6 +114,12 @@ static void page_init(void) {
 
     // 先全部置为 reserved，防止尚未完成布局的页被分配
     size_t nr_pages = npage - nbase;
+    uintptr_t pages_pa = PADDR(pages);
+    uintptr_t managed_end = ROUNDDOWN(mem_end, PGSIZE);
+    if (pages_pa >= managed_end ||
+        nr_pages > (managed_end - pages_pa) / sizeof(*pages)) {
+        panic("page_init: not enough memory for Page descriptors");
+    }
     for (size_t i = 0; i < nr_pages; i++) {
         pages[i].ref = 0;
         pages[i].flags = 0;

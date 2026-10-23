@@ -27,7 +27,7 @@ endif
 HOSTCC		:= gcc
 HOSTCFLAGS	:= -Wall -O2
 
-GDB		:= $(GCCPREFIX)gdb
+GDB		?= gdb-multiarch
 
 CC		:= $(GCCPREFIX)gcc
 CFLAGS  := -mcmodel=medany -std=gnu99 -Wno-unused -Werror 
@@ -55,6 +55,10 @@ TOUCH	:= touch -c
 
 OBJDIR	:= obj
 BINDIR	:= bin
+ifeq ($(MAKECMDGOALS),test)
+OBJDIR := obj-test
+BINDIR := bin-test
+endif
 
 ALLOBJS	:=
 ALLDEPS	:=
@@ -200,18 +204,18 @@ qemu: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
 		-machine virt \
 		-nographic \
 		-bios default \
-		-device loader,file=$(UCOREIMG),addr=0x80200000
+		-kernel $(UCOREIMG)
 
 debug: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
 	$(V)$(QEMU) \
 		-machine virt \
 		-nographic \
 		-bios default \
-		-device loader,file=$(UCOREIMG),addr=0x80200000\
+		-kernel $(UCOREIMG)\
 		-s -S
 
 gdb:
-	riscv64-unknown-elf-gdb \
+	$(GDB) \
     -ex 'file bin/kernel' \
     -ex 'set arch riscv:rv64' \
     -ex 'target remote localhost:1234'
@@ -221,7 +225,7 @@ test: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
 		-machine virt \
 		-nographic \
 		-bios default \
-		-device loader,file=$(UCOREIMG),addr=0x80200000
+		-kernel $(UCOREIMG)
 spike: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
 	$(V)$(SPIKE) $(UCOREIMG)
 
@@ -255,7 +259,7 @@ print-%:
 .PHONY: clean dist-clean handin packall tags
 clean:
 	$(V)$(RM) $(GRADE_GDB_IN) $(GRADE_QEMU_OUT) cscope* tags
-	-$(RM) -r $(OBJDIR) $(BINDIR)
+	-$(RM) -r $(OBJDIR) $(BINDIR) obj-test bin-test
 
 dist-clean: clean
 	-$(RM) $(HANDIN)

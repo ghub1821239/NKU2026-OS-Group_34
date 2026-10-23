@@ -1,0 +1,4 @@
+make: Nothing to be done for 'TARGETS'.
+Dual GDB trace: PASS
+DTB instruction PC=0xffffffffc020028a, VA=0xffffffffc2200000 -> PA=0x82200000
+Logs: logs/mmu-host.log, logs/mmu-guest.log, logs/mmu-qemu.log

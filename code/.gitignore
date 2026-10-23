@@ -1,0 +1,11 @@
+/obj/
+/bin/
+/obj-test/
+/bin-test/
+/.gdb.in
+/.qemu.out
+__pycache__/
+*.pyc
+/history/
+lab2_old/
+lab2_new/

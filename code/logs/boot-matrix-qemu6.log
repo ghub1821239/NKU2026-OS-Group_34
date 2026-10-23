@@ -1,0 +1,3 @@
+qemu6 64 MiB: PASS (boot-qemu6-64M.log)
+qemu6 128 MiB: PASS (boot-qemu6-128M.log)
+qemu6 256 MiB: PASS (boot-qemu6-256M.log)

@@ -73,6 +73,7 @@ kern_entry:
     # .align 2^12
     # 单次对齐2^12(只作用一次)
     .align PGSHIFT
+    # 把接下来数据的起始地址对齐到2^n字节的边界，这里是4KB
 
 # 标记 1 可以全局访问
     .global bootstack
@@ -95,8 +96,10 @@ bootstacktop:
 # 分配 4KiB 内存给预设的三级页表
 boot_page_table_sv39:
     # 0xffffffff_c0000000 map to 0x80000000 (1G)
-    # 前 511 个页表项均设置为 0 ，因此 V=0 ，意味着是空的(unmapped)
-    .zero 8 * 511
+    # Keep the low PC mapped across satp activation and sfence.vma.
+    .zero 8 * 2
+    .quad (0x80000 << 10) | 0xcf # identity map [0x80000000, 0xc0000000)
+    .zero 8 * (511 - 3)
     # 设置最后一个页表项，PPN=0x80000，标志位 VRWXAD 均为 1
     .quad (0x80000 << 10) | 0xcf # VRWXAD
 

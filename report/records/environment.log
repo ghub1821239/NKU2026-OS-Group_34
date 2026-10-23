@@ -1,0 +1,19 @@
+===== Git =====
+7281d3bcbd9fd42a6c63c611e436e6e2cc9aa4c4
+===== System =====
+PRETTY_NAME="Ubuntu 22.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="22.04"
+VERSION="22.04.5 LTS (Jammy Jellyfish)"
+VERSION_CODENAME=jammy
+ID=ubuntu
+===== GCC =====
+riscv64-unknown-elf-gcc () 10.2.0
+===== QEMU =====
+QEMU emulator version 6.2.0 (Debian 1:6.2+dfsg-2ubuntu6.31)
+===== GDB =====
+GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1
+===== Make =====
+GNU Make 4.3
+===== Python =====
+Python 3.10.12
