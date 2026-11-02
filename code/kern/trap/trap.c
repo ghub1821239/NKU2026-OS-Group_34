@@ -6,6 +6,7 @@
 #include <memlayout.h>
 #include <mmu.h>
 #include <riscv.h>
+#include <sbi.h>
 #include <stdio.h>
 #include <trap.h>
 
@@ -83,7 +84,87 @@ void print_regs(struct pushregs *gpr) {
 }
 
 //lab3 function2 YOUR CODE
+#define SHUTDOWN_AFTER 20
 
+void interrupt_handler(struct trapframe *tf) {
+    // tf->cause 的最高位是中断标志位，先将其剥离，得到中断类型
+    uintptr_t cause = (tf->cause << 1) >> 1;
+
+    switch (cause) {
+    case IRQ_U_SOFT:
+        cprintf("User software interrupt\n");
+        break;
+    case IRQ_S_SOFT:
+        cprintf("Supervisor software interrupt\n");
+        break;
+    case IRQ_H_SOFT:
+        cprintf("Hypervisor software interrupt\n");
+        break;
+    case IRQ_M_SOFT:
+        cprintf("Machine software interrupt\n");
+        break;
+    case IRQ_U_TIMER:
+        cprintf("User timer interrupt\n");
+        break;
+    case IRQ_S_TIMER: {
+        // 设置下一次时钟中断
+        clock_set_next_event();
+        ticks++;
+        if (ticks % TICK_NUM == 0) {
+            static size_t print_count = 0;
+            print_ticks();
+            print_count++;
+            if (print_count >= SHUTDOWN_AFTER) {
+                sbi_shutdown();
+            }
+        }
+        break;
+    }
+    case IRQ_H_TIMER:
+        cprintf("Hypervisor timer interrupt\n");
+        break;
+    case IRQ_M_TIMER:
+        cprintf("Machine timer interrupt\n");
+        break;
+    case IRQ_U_EXT:
+        cprintf("User external interrupt\n");
+        break;
+    case IRQ_S_EXT:
+        cprintf("Supervisor external interrupt\n");
+        break;
+    case IRQ_H_EXT:
+        cprintf("Hypervisor external interrupt\n");
+        break;
+    case IRQ_M_EXT:
+        cprintf("Machine external interrupt\n");
+        break;
+    default:
+        cprintf("Unknown interrupt: cause %d\n", (int)cause);
+        print_trapframe(tf);
+        break;
+    }
+}
+
+void exception_handler(struct trapframe *tf) {
+    switch (tf->cause) {
+    case CAUSE_ILLEGAL_INSTRUCTION: {
+        cprintf("Illegal instruction at 0x%016lx\n", tf->epc);
+        // RISC-V: 低两位为 0b11 表示 32 位指令，否则为 16 位压缩指令
+        uint16_t insn = *(volatile uint16_t *)tf->epc;
+        tf->epc += (insn & 0x3) == 0x3 ? 4 : 2;
+        break;
+    }
+    case CAUSE_BREAKPOINT: {
+        cprintf("Breakpoint at 0x%016lx\n", tf->epc);
+        uint16_t insn = *(volatile uint16_t *)tf->epc;
+        tf->epc += (insn & 0x3) == 0x3 ? 4 : 2;
+        break;
+    }
+    default:
+        print_trapframe(tf);
+        break;
+    }
+}
 
 static inline void trap_dispatch(struct trapframe *tf) {
     if ((intptr_t)tf->cause < 0) {

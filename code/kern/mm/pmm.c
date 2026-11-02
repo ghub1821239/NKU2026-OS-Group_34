@@ -47,9 +47,12 @@ static void init_memmap(struct Page *base, size_t n) {
 
 // alloc_pages - call pmm->alloc_pages to allocate a continuous n*PAGESIZE
 // memory
+// 分配页&free 的时候需要保存中断再恢复，是因为中断程序也需要使用 page，如果 page 分配的时候突然定时器中断，那么中断程序相应也会坏
+// 所以要防止定时器中断
 struct Page *alloc_pages(size_t n) {
     struct Page *page = NULL;
     bool intr_flag;
+    // 发生宏替换，所以可以赋值
     local_intr_save(intr_flag);
     {
         page = pmm_manager->alloc_pages(n);
