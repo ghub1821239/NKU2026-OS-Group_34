@@ -18,7 +18,7 @@ int kern_init(void) {
     // 先清零 BSS，再读取并保存 DTB 的内存信息，避免被清零覆盖（为了解释变化 正式上传时我觉得应该删去这句话）
     memset(edata, 0, end - edata);
     dtb_init();
-    cons_init();  // init the console
+    cons_init();  // init the console 同 lab2 是上古时期留下的东西
     const char *message = "(THU.CST) os is loading ...\0";
     //cprintf("%s\n\n", message);
     cputs(message);
