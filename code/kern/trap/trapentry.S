@@ -63,7 +63,7 @@
 
     .macro RESTORE_ALL
 
-    #lab3 function1 YOUR CODE
+    #lab3 function1 2413633
     # 先恢复 sstatus、sepc（sbadaddr 与 scause 无需恢复）
     # RISCV不能直接从内存写到CSR, 需要LOAD到通用寄存器，再从通用寄存器csrw到CSR
     LOAD s1, 32*REGBYTES(sp)
@@ -115,7 +115,7 @@
 __alltraps:
     SAVE_ALL
 
-    #lab3 function1 YOUR CODE
+    #lab3 function1 2413633
     # sp should be the same as before "jal trap"
     mv a0, sp          # 将 trapframe 首地址作为第一个参数传给 trap
     jal trap           # 调用 C 函数 trap(struct trapframe *tf)

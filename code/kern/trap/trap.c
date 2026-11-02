@@ -83,7 +83,7 @@ void print_regs(struct pushregs *gpr) {
     cprintf("  t6       0x%08x\n", gpr->t6);
 }
 
-//lab3 function2 YOUR CODE
+//lab3 function2 2413633
 #define SHUTDOWN_AFTER 20
 
 void interrupt_handler(struct trapframe *tf) {
