@@ -88,7 +88,7 @@ void print_regs(struct pushregs *gpr) {
 
 void interrupt_handler(struct trapframe *tf) {
     // tf->cause 的最高位是中断标志位，先将其剥离，得到中断类型
-    uintptr_t cause = (tf->cause << 1) >> 1;
+    uintptr_t cause = (tf->cause << 1) >> 1;// 1+63位
 
     switch (cause) {
     case IRQ_U_SOFT:
@@ -108,7 +108,7 @@ void interrupt_handler(struct trapframe *tf) {
         break;
     case IRQ_S_TIMER: {
         // 设置下一次时钟中断
-        clock_set_next_event();
+        clock_set_next_event(); // 因为 clock_init() 只安排了第一次时钟中断。
         ticks++;
         if (ticks % TICK_NUM == 0) {
             static size_t print_count = 0;

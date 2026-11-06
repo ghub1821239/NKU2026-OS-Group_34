@@ -1,0 +1,50 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+Hardware assisted breakpoint 1 at 0xffffffffc0200c1c: file kern/trap/trapentry.S, line 116.
+
+Breakpoint 1, __alltraps () at kern/trap/trapentry.S:116
+116	    SAVE_ALL
+PHASE 1: hardware trap entry before SAVE_ALL
+pc             0xffffffffc0200c1c	0xffffffffc0200c1c <__alltraps>
+sp             0xffffffffc0205ff0	0xffffffffc0205ff0
+sepc           0xffffffffc020009c	-1071644516
+scause         0x8000000000000005	-9223372036854775803
+sstatus        0x8000000000006120	-9223372036854750944
+sscratch       0x0	0
+Hardware assisted breakpoint 2 at 0xffffffffc0200c0e: file kern/trap/trap.c, line 170.
+
+Breakpoint 2, trap (tf=0xffffffffc0205ed0) at kern/trap/trap.c:187
+187	    trap_dispatch(tf);
+PHASE 2: saved trapframe passed to C
+$1 = 288
+$2 = 0xffffffffc0205ff0
+$3 = 0x8000000000006120
+$4 = 0xffffffffc020009c
+$5 = 0x8000000000000005
+$6 = 288
+Hardware assisted breakpoint 3 at 0xffffffffc0200c84: file kern/trap/trapentry.S, line 125.
+
+Breakpoint 3, __trapret () at kern/trap/trapentry.S:125
+125	    RESTORE_ALL
+PHASE 3: C handler returned
+$7 = 1
+$8 = 0xffffffffc0205ed0
+Hardware assisted breakpoint 4 at 0xffffffffc0200cce: file kern/trap/trapentry.S, line 127.
+
+Breakpoint 4, __trapret () at kern/trap/trapentry.S:127
+127	    sret
+PHASE 4: restored state before sret
+sp             0xffffffffc0205ff0	0xffffffffc0205ff0
+sepc           0xffffffffc020009c	-1071644516
+sstatus        0x8000000000006120	-9223372036854750944
+$9 = 1
+Hardware assisted breakpoint 5 at 0xffffffffc020009c: file kern/init/init.c, line 39.
+
+Temporary breakpoint 5, kern_init () at kern/init/init.c:39
+39	    while (1)
+PHASE 5: sret resumed the interrupted instruction
+pc             0xffffffffc020009c	0xffffffffc020009c <kern_init+72>
+sp             0xffffffffc0205ff0	0xffffffffc0205ff0
+sstatus        0x8000000000006002	-9223372036854751230
+$10 = 1
+[Inferior 1 (process 1) detached]

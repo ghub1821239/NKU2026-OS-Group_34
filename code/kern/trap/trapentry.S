@@ -1,11 +1,14 @@
 #include <riscv.h>
 
+
+
+
     # 宏定义开始
     .macro SAVE_ALL
 
-    csrw sscratch, sp
+    csrw sscratch, sp  #存sp
 
-    addi sp, sp, -36 * REGBYTES
+    addi sp, sp, -36 * REGBYTES   #开辟栈空间存放 TrapFrame 36 个 8 字节字段，恰好 288 字节
     # save x registers
     STORE x0, 0*REGBYTES(sp)
     STORE x1, 1*REGBYTES(sp)

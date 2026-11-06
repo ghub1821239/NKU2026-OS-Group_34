@@ -46,10 +46,10 @@ struct trapframe {
     uintptr_t cause;
 };
 
-void trap(struct trapframe *tf);
-void idt_init(void);
+void trap(struct trapframe *tf); //中断与异常的统一 C 语言处理入口
+void idt_init(void);             //初始化中断入口地址
 void print_trapframe(struct trapframe *tf);
 void print_regs(struct pushregs* gpr);
-bool trap_in_kernel(struct trapframe *tf);
+bool trap_in_kernel(struct trapframe *tf); //判断 Trap 发生前是否处于内核态
 
 #endif /* !__KERN_TRAP_TRAP_H__ */

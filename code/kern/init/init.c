@@ -15,7 +15,7 @@ void grade_backtrace(void);
 
 int kern_init(void) {
     extern char edata[], end[];
-    // 先清零 BSS，再读取并保存 DTB 的内存信息，避免被清零覆盖（为了解释变化 正式上传时我觉得应该删去这句话）
+    // 先清零 BSS，再读取并保存 DTB 的内存信息，避免被清零覆盖
     memset(edata, 0, end - edata);
     dtb_init();
     cons_init();  // init the console 同 lab2 是上古时期留下的东西
@@ -29,8 +29,6 @@ int kern_init(void) {
     idt_init();  // init interrupt descriptor table
 
     pmm_init();  // init physical memory management
-
-    idt_init();  // init interrupt descriptor table
 
     clock_init();   // init clock interrupt
     intr_enable();  // enable irq interrupt
