@@ -53,15 +53,62 @@
     .endm
 
     .macro RESTORE_ALL
-    #lab3:填写你在lab3中实现的代码
+
+    #lab3 function1 2413633
+    # 先恢复 sstatus、sepc（sbadaddr 与 scause 无需恢复）
+    # RISCV不能直接从内存写到CSR, 需要LOAD到通用寄存器，再从通用寄存器csrw到CSR
+    LOAD s1, 32*REGBYTES(sp)
+    csrw sstatus, s1
+    LOAD s1, 33*REGBYTES(sp)
+    csrw sepc, s1
+
+    # restore x registers
+    LOAD x1, 1*REGBYTES(sp)
+    LOAD x3, 3*REGBYTES(sp)
+    LOAD x4, 4*REGBYTES(sp)
+    LOAD x5, 5*REGBYTES(sp)
+    LOAD x6, 6*REGBYTES(sp)
+    LOAD x7, 7*REGBYTES(sp)
+    LOAD x8, 8*REGBYTES(sp)
+    LOAD x9, 9*REGBYTES(sp)
+    LOAD x10, 10*REGBYTES(sp)
+    LOAD x11, 11*REGBYTES(sp)
+    LOAD x12, 12*REGBYTES(sp)
+    LOAD x13, 13*REGBYTES(sp)
+    LOAD x14, 14*REGBYTES(sp)
+    LOAD x15, 15*REGBYTES(sp)
+    LOAD x16, 16*REGBYTES(sp)
+    LOAD x17, 17*REGBYTES(sp)
+    LOAD x18, 18*REGBYTES(sp)
+    LOAD x19, 19*REGBYTES(sp)
+    LOAD x20, 20*REGBYTES(sp)
+    LOAD x21, 21*REGBYTES(sp)
+    LOAD x22, 22*REGBYTES(sp)
+    LOAD x23, 23*REGBYTES(sp)
+    LOAD x24, 24*REGBYTES(sp)
+    LOAD x25, 25*REGBYTES(sp)
+    LOAD x26, 26*REGBYTES(sp)
+    LOAD x27, 27*REGBYTES(sp)
+    LOAD x28, 28*REGBYTES(sp)
+    LOAD x29, 29*REGBYTES(sp)
+    LOAD x30, 30*REGBYTES(sp)
+    LOAD x31, 31*REGBYTES(sp)
+
+    # 最后再恢复 x2(sp)：SAVE_ALL 中 sscratch(原 sp) 被存到了 2*REGBYTES 处，
+    # 此后栈帧即失效，所以必须放到最后一条
+    LOAD x2, 2*REGBYTES(sp)
+
     .endm
 
     .globl __alltraps
 __alltraps:
     SAVE_ALL
 
-    #lab3:填写你在lab3中实现的代码
+    #lab3 function1 2413633
     # sp should be the same as before "jal trap"
+    mv a0, sp          # 将  首地址作为第一个参数传给 trap
+    jal trap           # 调用 C 函数 trap(struct trapframe *tf)
+
 
     .globl __trapret
 __trapret:
