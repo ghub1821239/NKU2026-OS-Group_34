@@ -145,23 +145,58 @@ post-condition:
 # 3.
 ## 3.1 void cpu_idle(void);(kern/process/proc.c)
 ```markdown
-
+【prompt】
+生成void cpu_idle(void);(kern/process/proc.c)函数的 body，它起的作用就是去盯着need_resched，然后如果变成 1 就说明其他的线程要跑了，idleproc 就给需要跑的让出来，然后调用 schedule()去选择要跑的线程是谁
+【rely】
+sched.h 的 schedule；list.h 的 list_next；
+【guarantee】 
+只实现void cpu_idle(void);(kern/process/proc.c)函数，其他文件和函数接口不要做修改
+【specification】 
+内部用一个 while(1)轮询盯着 need_resched就可以
 ```
 ## 3.2 void schedule(void);(kern/schedule/sched.c)
 ```markdown
-
+【prompt】
+生成 void schedule(void)函数的 body，它先关闭中断保护，然后将 current的need_resched 清 0，再从current 往下取遍历链表找 Runnable 的线程，然后将选中的 runs+1，如果没有的话就默认选择 idleproc 0 号线程
+【rely】
+sched.h 的 schedule；proc.h 的 struct proc_struct、proc_list、idleproc、current；list.h 的 list_next；
+【guarantee】 
+只实现 kern/schedule/sched.c 中的 void schedule(void) 函数，其他文件和函数接口不要做修改
+【specification】 
+post-condition:
+调度前清除 current->need_resched，且整个选路过程受关中断保护；
+无其他可运行进程时回退到 idleproc；
+被选中的 next->runs 加 1，且仅当 next != current 时调用 proc_run(next)。
 ```
 ## 3.3 void proc_run(struct proc_struct *proc);(kern/process/proc.c)
 ```markdown
-
+【prompt】
+生成 void proc_run(struct proc_struct *proc)函数的 body，他的目的就是完成线程、页表和执行现场切换，也就是将 current 更新为 proc，然后把 satp 切换为新线程的页表基址，之后调用 switch_to 去保存 callee的那几个寄存器
+【rely】
+proc.h 的 struct proc_struct、current、cpu_idle、proc_run；proc.c 已声明的 switch_to；sched.h 的 schedule；
+【guarantee】 
+只实现 kern/process/proc.c 中的proc_run函数，其他文件和函数接口不要做修改
+【specification】 
+post-condition:
+proc_run 在 proc == current 时直接剪枝返回；
+当 proc != current 时在关中断保护下去更新 current 后保证 RV64 Sv39 模式下的 satp 页表基址与 TLB 正确切换，再通过 switch_to 切换上下文。
 ```
 ## 3.4 void switch_to(struct context *from, struct context *to);(kern/process/switch.s)
 ```markdown
-
+【prompt】
+生成switch_to(kern/process/switch.S)汇编部分，写清楚.text .globl switch_to等部分，他的目的在被proc_run调用之后完成寄存器的管理，因为函数调用的时候 sp ra 这些会受到编译器的改动，所以这里只能采用汇编的形式保存 callee的那几个寄存器
+【rely】
+参考void proc_run(struct proc_struct *proc)调用的形式；proc.h 中的struct context这个结构体； RV64 中 callee 方需要保存的 14 个寄存器分别是啥
+【guarantee】 
+只实现kern/process/switch.S中的switch_to汇编形式，其他文件和函数接口不要做修改
+【specification】 
+post-condition:
+14 个寄存器可以按需保存下来，方便之后切换的时候的恢复以及方便转换进程之后的新 proc 的使用
 ```
 ## challenge 1:说明语句 local_intr_save(intr_flag); ... local_intr_restore(intr_flag); 是如何实现开关中断的。
 ```markdown
-
+local_intr_save(intr_flag)先读取状态寄存器 sstatus 中的中断使能位 SSTATUS_SIE：若原本开中断，就调用 intr_disable() 关中断并将 intr_flag 记为 1；若原本就已经关中断，则直接把 intr_flag 记为 0。
+local_intr_restore(intr_flag) 在退出保护区时只检查 intr_flag：只有当 intr_flag 为 1（说明进入前原本开着中断、是本次操作关掉的）时，才调用 intr_enable() 重新开启中断；若为 0 则保持关中断不动。
 ```
 ## Challenge 2:深入理解不同分页模式的工作原理（思考题）:
 ### 题目：
@@ -173,5 +208,6 @@ get_pte() 函数中有两段形式类似的代码，结合 sv32、sv39、sv48 �
 ```
 ### 答案：
 ```markdown
-
+相似是因为无论是sv32（2 级页表，10+10+12）、sv39（3 级页表，9+9+9+12）还是 sv48（4 级页表，9+9+9+9+12）。三种模式的区别主要在于虚拟地址位宽、每级索引位数与总级数不同，但是三种模式每一层执行的本质逻辑完全一致，都是在嵌套索引这个页表项，每一层干的事其实是一样的。
+我认为当前合在一起的写法是合理的，现阶段没有必要拆开。因为查找定位和缺表时就直接补上发生在一条逐级遍历的路径上，通过 create 参数复用同一份代码，既能一趟遍历完成工作、避免重复查表，当然如果为了追求函数的职责单一化也可以拆分，方便 debug。
 ```

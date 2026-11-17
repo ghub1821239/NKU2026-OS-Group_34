@@ -381,3 +381,35 @@ bad_fork_cleanup_proc:
 
 
 //LAB4 function3 2413633
+// cpu_idle - the idle thread's main loop: yield the CPU whenever some other
+//            thread needs to be scheduled
+void cpu_idle(void)
+{
+    while (1)
+    {
+        if (current->need_resched)
+        {
+            schedule();
+        }
+    }
+}
+
+// proc_run - make "proc" the current running process and switch to its context
+void proc_run(struct proc_struct *proc)
+{
+    if (proc != current)
+    {
+        bool intr_flag;
+        struct proc_struct *prev = current, *next = proc;
+
+        local_intr_save(intr_flag);
+        {
+            current = proc;
+            // switch to the new process's Sv39 page table (pgdir is a physical address)
+            write_csr(satp, ((uintptr_t)SATP_MODE_SV39 << 60) | (next->pgdir >> RISCV_PGSHIFT));
+            flush_tlb();
+            switch_to(&(prev->context), &(next->context));
+        }
+        local_intr_restore(intr_flag);
+    }
+}
