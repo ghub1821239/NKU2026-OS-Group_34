@@ -88,3 +88,90 @@ Post-Condition：
 6. 对同一地址再次调用 page_remove() 必须安全、无异常、无重复释放。
 7. 保留中间级页表，避免改变现有页表检查对页表页的管理约定。
 ```
+
+# 2. 进程创建及初始化功能
+## 2.1 static struct proc_struct *alloc_proc(void);(kern/process/proc.c)
+```markdown
+【prompt】
+我们要实现static struct proc_struct *alloc_proc(void);(kern/process/proc.c)这个函数，括号内为函数所在的文件路径。目的是调用的时候可以分配一个新的进程，函数返回进程结构体指针
+【rely】
+proc.h 中的结构体proc_struct；proc.h 中的proc_state；kmalloc.h 中的 kmalloc 申请内存；pmm.h 中的 boot_pgdir_pa；
+【guarantee】
+必须实现static struct proc_struct *alloc_proc(void);函数，完成process的分配操作，除此之外不要修改任何其他文件或本文件的其他函数接口
+【specification】
+post-condition:返回非空 struct proc_struct *proc，且成员变量均已初始化为确定值，比如 pid=-1 runs=0等
+如果失败，那么就返回 NULL
+```
+## 2.2 void proc_init(void);(kern/process/proc.c)
+```markdown
+【prompt】
+实现 kern/process/proc.c 中的 void proc_init(void); 函数，首先初始化进程链表和哈希表等全局管理结构，然后将当前正在启动的执行流初始化为 0 号内核线程 idleproc，完成设置 pid 为 0、状态设为 PROC_RUNNABLE、need_resched 置为 1等工作；之后通过 kernel_thread 创建 1 号内核线程 initproc，完成初始化后正常返回即可
+【rely】
+proc.h 中的结构体proc_struct；proc.h 中的proc_state、kernel_thread； proc.c 中已有的全局状态（proc_list、hash_list、nr_process）；pmm.h 中的 list.h、assert.h（panic）等
+RV64 0&1 号进程官方的状态转换约束
+【guarantee】
+必须实现 kern/process/proc.c 中的 void proc_init(void); 函数，除此之外不要修改任何其他文件或本文件的其他函数接口
+【specification】
+post-condition:
+1. 全局进程链表和哈希表均已初始化，0 号线程 idleproc 与 1 号线程 initproc 均已创建而且状态正确
+2. 异常分支：如果分配或创建 idleproc / initproc 失败，直接调用 panic 报错停机。
+```
+## 2.3 int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags);(kern/process/proc.c)
+```markdown
+【prompt】
+实现 kern/process/proc.c 中的 int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags); 函数。构造一个临时中断帧（struct trapframe），清零后配好入口函数 fn、参数 arg、首次进入的汇编入口以及内核态运行状态，然后在传入的 clone_flags 上补齐共享虚拟内存空间对应的标志位，调用 do_fork 创建内核线程并返回结果
+【rely】
+proc.h 中的 kernel_thread、do_fork 声明；trap.h 中的 struct trapframe；proc.c 已声明的 kernel_thread_entry 及 entry.S 里的传参约定；
+【guarantee】
+必须实现 int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags); 函数，除此之外不要修改任何其他文件或本文件的其他函数接口
+【specification】
+post-condition: 临时中断帧已清零并配置妥当，新建内核线程启动后能从汇编入口跳去执行 fn(arg)；传给 do_fork 的栈参数为 0（使用各自独立的内核栈）且带有共享虚拟内存标志，直接返回 do_fork 的返回值（成功为新线程 pid，失败为错误码）
+```
+## 2.4 int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf);(kern/process/proc.c) & static void copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf);(kern/process/proc.c) & static int copy_mm(uint32_t clone_flags, struct proc_struct *proc);(kern/process/proc.c)
+```markdown
+【prompt】
+在 kern/process/proc.c 实现 copy_mm、copy_thread 和 do_fork 三个函数。copy_mm 只需保持内核线程 proc->mm 为空并返回 0；copy_thread 把传入的 tf 拷贝到子进程内核栈顶，并配置好首次进入 forkret 的上下文；do_fork 依次完成上限检查、申请 PCB 与内核栈、调用上述两函数、关中断下分配 pid 并挂入全局哈希表和进程链表，最后唤醒并返回新 pid
+【rely】
+proc.h 的 proc_struct、current、do_fork；trap.h 的 trapframe；proc.c 已有的 alloc_proc、setup_kstack、put_kstack、get_pid、nr_process等；sched.h 的 wakeup_proc；sync.h 中的 panic；
+【guarantee】
+保留三个独立函数签名与分工，不要揉成一个函数；不要改动已有的函数和接口
+【specification】
+post-condition:
+1. copy_mm 保持 proc->mm == NULL 返回 0；copy_thread 使 proc->tf 位于栈顶（a0 为 0，sp 按 esp 或栈顶配置）且 context.ra == forkret、context.sp == proc->tf；
+2. do_fork 正常时在关中断保护下更新链表与 nr_process，唤醒新线程并返回正整数 pid；
+3. 异常分支：达上限或任一步分配失败时，逆序释放已申请的内核栈与 PCB，不写入链表并返回负错误码
+```
+
+# 3.
+## 3.1 void cpu_idle(void);(kern/process/proc.c)
+```markdown
+
+```
+## 3.2 void schedule(void);(kern/schedule/sched.c)
+```markdown
+
+```
+## 3.3 void proc_run(struct proc_struct *proc);(kern/process/proc.c)
+```markdown
+
+```
+## 3.4 void switch_to(struct context *from, struct context *to);(kern/process/switch.s)
+```markdown
+
+```
+## challenge 1:说明语句 local_intr_save(intr_flag); ... local_intr_restore(intr_flag); 是如何实现开关中断的。
+```markdown
+
+```
+## Challenge 2:深入理解不同分页模式的工作原理（思考题）:
+### 题目：
+```markdown
+get_pte() 函数位于 kern/mm/pmm.c，用于在页表中查找或创建页表项，从而实现对指定线性地址对应的物理页的访问和映射操作。这在操作系统的分页机制下，是虚拟内存与物理内存建立映射关系的关键基础。
+
+get_pte() 函数中有两段形式类似的代码，结合 sv32、sv39、sv48 的异同，解释这两段代码为什么如此相像。
+目前 get_pte() 函数将页表项查找和页表页分配合并在一个函数里，你认为这种写法好吗？有没有必要把两个功能拆开？
+```
+### 答案：
+```markdown
+
+```

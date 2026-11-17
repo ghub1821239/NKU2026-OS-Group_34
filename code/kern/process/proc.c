@@ -218,7 +218,166 @@ init_main(void *arg)
     return 0;
 }
 
-//LAB4 function2 YOUR CODE
+//LAB4 function2 2413633
+// alloc_proc - alloc a proc_struct and init all fields of proc_struct
+static struct proc_struct *
+alloc_proc(void)
+{
+    struct proc_struct *proc = kmalloc(sizeof(struct proc_struct));
+    if (proc != NULL)
+    {
+        proc->state = PROC_UNINIT;
+        proc->pid = -1;
+        proc->runs = 0;
+        proc->kstack = 0;
+        proc->need_resched = 0;
+        proc->parent = NULL;
+        proc->mm = NULL;
+        memset(&(proc->context), 0, sizeof(struct context));
+        proc->tf = NULL;
+        proc->pgdir = boot_pgdir_pa;
+        proc->flags = 0;
+        memset(proc->name, 0, PROC_NAME_LEN + 1);
+        proc->list_link.next = proc->list_link.prev = NULL;
+        proc->hash_link.next = proc->hash_link.prev = NULL;
+    }
+    return proc;
+}
+
+// proc_init - set up the first kernel thread idleproc "idle" by itself and
+//           - create the second kernel thread init_main
+void proc_init(void)
+{
+    int i;
+
+    list_init(&proc_list);
+    for (i = 0; i < HASH_LIST_SIZE; i++)
+    {
+        list_init(hash_list + i);
+    }
+
+    if ((idleproc = alloc_proc()) == NULL)
+    {
+        panic("cannot alloc idleproc.\n");
+    }
+
+    idleproc->pid = 0;
+    idleproc->state = PROC_RUNNABLE;
+    idleproc->kstack = (uintptr_t)bootstack;
+    idleproc->need_resched = 1;
+    set_proc_name(idleproc, "idle");
+    nr_process++;
+
+    current = idleproc;
+
+    int pid = kernel_thread(init_main, "Hello world!!", 0);
+    if (pid <= 0)
+    {
+        panic("create init_main failed.\n");
+    }
+
+    initproc = find_proc(pid);
+    set_proc_name(initproc, "init");
+
+    assert(idleproc != NULL && idleproc->pid == 0);
+    assert(initproc != NULL && initproc->pid == 1);
+}
+
+// kernel_thread - create a kernel thread whose first entry is kernel_thread_entry,
+//                 which will call fn(arg) in the new thread's own kernel stack
+int kernel_thread(int (*fn)(void *), void *arg, uint32_t clone_flags)
+{
+    struct trapframe tf;
+    memset(&tf, 0, sizeof(struct trapframe));
+
+    // kernel_thread_entry: move a0, s1; jalr s0
+    tf.gpr.s0 = (uintptr_t)fn;
+    tf.gpr.s1 = (uintptr_t)arg;
+    tf.epc = (uintptr_t)kernel_thread_entry;
+
+    // return to supervisor mode, with interrupts enabled after sret
+    tf.status = (read_csr(sstatus) | SSTATUS_SPP | SSTATUS_SPIE) & ~SSTATUS_SIE;
+
+    return do_fork(clone_flags | CLONE_VM, 0, &tf);
+}
+
+// copy_mm - process "proc" duplicate or share "current"'s memory management
+//           in lab4, kernel threads share the kernel address space, so there
+//           is no user memory to copy and proc->mm stays NULL
+static int
+copy_mm(uint32_t clone_flags, struct proc_struct *proc)
+{
+    proc->mm = NULL;
+    return 0;
+}
+
+// copy_thread - set up the new thread's trapframe on the top of its kernel stack
+//               and the context used by switch_to to enter forkret for the first time
+static void
+copy_thread(struct proc_struct *proc, uintptr_t esp, struct trapframe *tf)
+{
+    proc->tf = (struct trapframe *)(proc->kstack + KSTACKSIZE - sizeof(struct trapframe));
+    *(proc->tf) = *tf;
+
+    // a0 = 0 tells the new thread that it is a child process
+    proc->tf->gpr.a0 = 0;
+    // esp == 0 means using the new thread's own kernel stack
+    proc->tf->gpr.sp = (esp == 0) ? (uintptr_t)proc->tf : esp;
+
+    proc->context.ra = (uintptr_t)forkret;
+    proc->context.sp = (uintptr_t)(proc->tf);
+}
+
+// do_fork - create a new process/thread by duplicating current
+int do_fork(uint32_t clone_flags, uintptr_t stack, struct trapframe *tf)
+{
+    int ret = -E_NO_FREE_PROC;
+    struct proc_struct *proc;
+
+    if (nr_process >= MAX_PROCESS)
+    {
+        goto fork_out;
+    }
+
+    ret = -E_NO_MEM;
+    if ((proc = alloc_proc()) == NULL)
+    {
+        goto fork_out;
+    }
+    proc->parent = current;
+
+    if (setup_kstack(proc) != 0)
+    {
+        goto bad_fork_cleanup_proc;
+    }
+    if (copy_mm(clone_flags, proc) != 0)
+    {
+        goto bad_fork_cleanup_kstack;
+    }
+    copy_thread(proc, stack, tf);
+
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    {
+        proc->pid = get_pid();
+        hash_proc(proc);
+        list_add(&proc_list, &(proc->list_link));
+        nr_process++;
+    }
+    local_intr_restore(intr_flag);
+
+    wakeup_proc(proc);
+    ret = proc->pid;
+
+fork_out:
+    return ret;
+
+bad_fork_cleanup_kstack:
+    put_kstack(proc);
+bad_fork_cleanup_proc:
+    kfree(proc);
+    goto fork_out;
+}
 
 
-//LAB4 function3 YOUR CODE
+//LAB4 function3 2413633
