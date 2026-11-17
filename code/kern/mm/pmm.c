@@ -284,12 +284,57 @@ struct Page *get_page(pde_t *pgdir, uintptr_t la, pte_t **ptep_store)
 }
 
 //LAB4 function1 YOUR CODE
+int page_insert(pde_t *pgdir, struct Page *page, uintptr_t la, uint32_t perm)
+{
+    pte_t *ptep = get_pte(pgdir, la, 1);
+    if (ptep == NULL)
+    {
+        return -E_NO_MEM;
+    }
 
+    struct Page *old_page = NULL;
+    if (*ptep & PTE_V)
+    {
+        old_page = pte2page(*ptep);
+    }
+    if (old_page != page)
+    {
+        page_ref_inc(page);
+    }
 
+    *ptep = pte_create(page2ppn(page), perm);
+    // Keep the PTE store before the fence and page reclamation after it.
+    asm volatile("" : : : "memory");
+    tlb_invalidate(pgdir, la);
+    asm volatile("" : : : "memory");
 
+    if (old_page != NULL && old_page != page && page_ref_dec(old_page) == 0)
+    {
+        free_page(old_page);
+    }
+    return 0;
+}
 
+void page_remove(pde_t *pgdir, uintptr_t la)
+{
+    pte_t *ptep = get_pte(pgdir, la, 0);
+    if (ptep == NULL || !(*ptep & PTE_V))
+    {
+        return;
+    }
 
+    struct Page *page = pte2page(*ptep);
+    *ptep = 0;
+    // Invalidate the old translation before the physical page can be reused.
+    asm volatile("" : : : "memory");
+    tlb_invalidate(pgdir, la);
+    asm volatile("" : : : "memory");
 
+    if (page_ref_dec(page) == 0)
+    {
+        free_page(page);
+    }
+}
 
 // invalidate a TLB entry, but only if the page tables being
 // edited are the ones currently in use by the processor.
